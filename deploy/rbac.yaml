@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: drain-driver
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: drain-driver
+rules:
+- apiGroups: ["lifecycle.k8s.io"]
+  resources: ["lifecycletransitions"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["lifecycle.k8s.io"]
+  resources: ["lifecycleevents"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/eviction"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: drain-driver
+subjects:
+- kind: ServiceAccount
+  name: drain-driver
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: drain-driver
+  apiGroup: rbac.authorization.k8s.io
