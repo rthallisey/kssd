@@ -1,49 +1,53 @@
 # KSSD - Kubectl Server-Side-Drain Driver for Kubernetes
 
-An [SLM (Specialized Lifecycle Management)](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/4212-specialized-lifecycle-management) driver that implements **server-side node drain**.
+A lifecycle driver implemented using the libraries from Kubectl Drain and executed on the server-side.
 
-Instead of `kubectl drain` running client-side, this driver runs as a kubelet plugin on every node. When a `LifecycleEvent` is created for a node, the kubelet claims it and calls the driver's gRPC methods to cordon the node, evict all pods, and report completion — all server-side.
+This driver is a POC, leveraging the [Specialized Lifecycle Management](https://github.com/kubernetes/enhancements/pull/5769) framework to show how lifecycle business logic can be offloaded to a driver while maintaining a standard observability interface in core Kubernetes (Node Conditions).
+
+Instead of `kubectl drain` running client-side, this driver runs as a kubelet plugin on every node.
+When a `LifecycleEvent` is created for a node that this driver can claim, the kubelet
+claims it and calls the driver's gRPC methods to cordon the node, evict all pods, and report completion.
 
 ## How it works
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                       API Server                         │
-│                                                          │
-│  Two LifecycleTransitions (AllNodes):                    │
-│    drain.slm.k8s.io          drain-started/drain-complete│
-│    drain.slm.k8s.io-uncordon uncordoning/maint-complete  │
-│                                                          │
-│  User creates LifecycleEvent for either transition       │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                       API Server                           │
+│                                                            │
+│  Kssd has 2 LifecycleTransitions:                          │
+│    1. kssd-drain                                           │
+│    2. kssd-maintenance-completed                           │
+│                                                            │
+│  A user creates a LifecycleEvent to trigger the transition │
+└────────────────────────────────────────────────────────────┘
                             |
                             | watch/update
                             |
-┌──────────────────────────────────────────────────────────┐
-│                        Kubelet                           │
-│                                                          │
-│  SLM Event Reconciler                                    │
-│    1. Claim event                                        │
-│    2. Call Start gRPC                                    │
-│    3. Patch Node condition                               │
-│    4. Call End gRPC                                      │
-│    5. Patch Node condition                               │
-│    6. Delete event                                       │
-└──────────────────────────────────────────────────────────┘
+          ┌───────────────────────────────────┐
+          │              Kubelet              │
+          │                                   │
+          │  SLM LifecycleEvent Reconciler    │
+          │    1. Claim LifecyleEvent         │
+          │    2. Call Start gRPC             │
+          │    3. Patch Node condition        │
+          │    4. Call End gRPC               │
+          │    5. Patch Node condition        │
+          │    6. Delete event                │
+          └───────────────────────────────────┘
                             |
                             | gRPC (unix socket)
                             |
-┌──────────────────────────────────────────────────────────┐
-│           Kubectl Server Side Drain Driver                │
-│                                                          │
-│  Drain transition:                                       │
-│    Start: cordon node, evict pods (async)                │
-│    End:   check remaining pods, return drain-complete    │
-│                                                          │
-│  Uncordon transition:                                    │
-│    Start: uncordon node                                  │
-│    End:   verify schedulable, return maintenance-complete│
-└──────────────────────────────────────────────────────────┘
+ ┌──────────────────────────────────────────────────────────┐
+ │           Kubectl Server Side Drain Driver               │
+ │                                                          │
+ │  Drain transition:                                       │
+ │    Start: cordon node, evict pods (async)                │
+ │    End:   wait until pod drain                           │
+ │                                                          │
+ │  Maintenace Complete transition:                         │
+ │    Start: uncordon node                                  │
+ │    End:   verify schedulable                             │
+ └──────────────────────────────────────────────────────────┘
 ```
 
 ## Quick start
@@ -51,6 +55,7 @@ Instead of `kubectl drain` running client-side, this driver runs as a kubelet pl
 ### Prerequisites
 
 - A Kubernetes cluster (v1.36+) with the `SpecializedLifecycleManagement` feature gate enabled
+  - https://github.com/rthallisey/kubernetes/tree/specialized-lifecycle-mgmt
 - The `lifecycle.k8s.io/v1alpha1` API enabled via `--runtime-config=lifecycle.k8s.io/v1alpha1=true`
 - `make drain NODE=worker-1` to drain the Pods from worker-1
 - `make maintenance-complete NODE=worker-1` to return the Node from maintenance
@@ -71,7 +76,7 @@ kubectl apply -f deploy/daemonset.yaml
 
 ### Trigger a drain
 
-Once the driver is running, it publishes two cluster-wide `LifecycleTransitions` (with `AllNodes=true`). To drain a node, create a `LifecycleEvent` referencing the drain transition:
+Once the driver is running, it publishes two cluster-wide `LifecycleTransitions`. To drain a node, create a `LifecycleEvent` referencing the drain transition:
 
 ```yaml
 apiVersion: lifecycle.k8s.io/v1alpha1
@@ -79,20 +84,8 @@ kind: LifecycleEvent
 metadata:
   name: drain-worker-1
 spec:
-  transitionName: drain.slm.k8s.io
+  transitionName: kssd-drain
   bindingNode: worker-1
-```
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: lifecycle.k8s.io/v1alpha1
-kind: LifecycleEvent
-metadata:
-  name: drain-worker-1
-spec:
-  transitionName: drain.slm.k8s.io
-  bindingNode: worker-1
-EOF
 ```
 
 After maintenance is done, uncordon the node by creating a second `LifecycleEvent` referencing the uncordon transition:
@@ -102,9 +95,9 @@ kubectl apply -f - <<EOF
 apiVersion: lifecycle.k8s.io/v1alpha1
 kind: LifecycleEvent
 metadata:
-  name: uncordon-worker-1
+  name: maint-complete-worker-1
 spec:
-  transitionName: drain.slm.k8s.io-uncordon
+  transitionName: kssd-maintenance-completed
   bindingNode: worker-1
 EOF
 ```
