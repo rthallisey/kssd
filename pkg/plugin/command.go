@@ -170,7 +170,7 @@ func NewCommand() *cobra.Command {
 		slaDuration := metav1.Duration{Duration: *sla}
 
 		drainTransition := &lifecycleapi.LifecycleTransition{
-			ObjectMeta: metav1.ObjectMeta{Name: *driverName},
+			ObjectMeta: metav1.ObjectMeta{Name: *driverName + "-drain"},
 			Spec: lifecycleapi.LifecycleTransitionSpec{
 				Start:    driver.DrainStarted,
 				End:      driver.DrainComplete,
@@ -185,7 +185,7 @@ func NewCommand() *cobra.Command {
 		logger.Info("Published LifecycleTransition", "name", drainTransition.Name)
 
 		uncordonTransition := &lifecycleapi.LifecycleTransition{
-			ObjectMeta: metav1.ObjectMeta{Name: *driverName + "-uncordon"},
+			ObjectMeta: metav1.ObjectMeta{Name: *driverName + "-maintenance-complete"},
 			Spec: lifecycleapi.LifecycleTransitionSpec{
 				Start:    driver.Uncordoning,
 				End:      driver.MaintenanceComplete,

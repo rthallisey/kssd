@@ -38,6 +38,7 @@ spec:
           mountPath: /var/lib/kubelet/plugins_registry
         securityContext:
           privileged: true
+          runAsUser: 0
       volumes:
       - name: socket-dir
         hostPath:
