@@ -1,4 +1,4 @@
-# Server-Side Drain Driver for Kubernetes
+# KSSD - Kubectl Server-Side-Drain Driver for Kubernetes
 
 An [SLM (Specialized Lifecycle Management)](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/4212-specialized-lifecycle-management) driver that implements **server-side node drain**.
 

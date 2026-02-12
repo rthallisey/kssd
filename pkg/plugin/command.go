@@ -51,8 +51,11 @@ import (
 )
 
 const (
-	// DriverName is the unique identifier for this SLM driver.
-	DriverName = "drain.slm.k8s.io"
+	// DriverName is the unique identifier for this driver.
+	DriverName = "kubectl-server-side-drain"
+
+	DrainTransitionName               = "kssd-drain"
+	MaintenanceCompleteTransitionName = "kssd-maintenance-complete"
 
 	// DefaultKubeletPluginsDir is the base directory for per-driver sockets.
 	DefaultKubeletPluginsDir = "/var/lib/kubelet/plugins"
@@ -170,7 +173,7 @@ func NewCommand() *cobra.Command {
 		slaDuration := metav1.Duration{Duration: *sla}
 
 		drainTransition := &lifecycleapi.LifecycleTransition{
-			ObjectMeta: metav1.ObjectMeta{Name: *driverName + "-drain"},
+			ObjectMeta: metav1.ObjectMeta{Name: DrainTransitionName},
 			Spec: lifecycleapi.LifecycleTransitionSpec{
 				Start:    driver.DrainStarted,
 				End:      driver.DrainComplete,
@@ -185,7 +188,7 @@ func NewCommand() *cobra.Command {
 		logger.Info("Published LifecycleTransition", "name", drainTransition.Name)
 
 		uncordonTransition := &lifecycleapi.LifecycleTransition{
-			ObjectMeta: metav1.ObjectMeta{Name: *driverName + "-maintenance-complete"},
+			ObjectMeta: metav1.ObjectMeta{Name: MaintenanceCompleteTransitionName},
 			Spec: lifecycleapi.LifecycleTransitionSpec{
 				Start:    driver.Uncordoning,
 				End:      driver.MaintenanceComplete,
