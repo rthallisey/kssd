@@ -5,10 +5,3 @@ aliases:
   # you should have your own set of approvers (see OWNERS)
   # in the original template repo, we must maintain this list to approve changes
   # to the template itself
-  github-admin-team:
-    - cblecker
-    - fejta
-    - idvoretskyi
-    - mrbobbytables
-    - nikhita
-    - spiffxp

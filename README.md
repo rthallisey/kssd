@@ -124,17 +124,6 @@ The uncordon flow:
 3. The driver confirms the node is schedulable → Node condition reason = `maintenance-complete`
 4. The kubelet deletes the event
 
-## Configuration
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--driver-name` | `drain.slm.k8s.io` | SLM driver identifier |
-| `--node-name` | (required) | Name of the node this instance manages |
-| `--sla` | `5m` | SLA duration for completing the drain |
-| `--eviction-timeout` | `30s` | Timeout for individual pod evictions |
-| `--grace-period` | `-1` | Override pod termination grace period (-1 = pod default) |
-| `--kubeconfig` | (in-cluster) | Path to kubeconfig for out-of-cluster use |
-
 ## Development
 
 ```bash
@@ -152,7 +141,7 @@ go run ./cmd/drain-driver kubelet-plugin \
 
 ## Community
 
-- [SLM KEP (KEP-4212)](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/4212-specialized-lifecycle-management)
+- [Specialized Lifecycle Management - KEP-5769](https://github.com/kubernetes/enhancements/pull/5769)
 - [Slack](https://slack.k8s.io/) — #sig-node-lifecycle
 - [Mailing List](https://groups.google.com/a/kubernetes.io/g/dev)
 
