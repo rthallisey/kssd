@@ -64,7 +64,7 @@ const (
 	DefaultKubeletRegistryDir = "/var/lib/kubelet/plugins_registry"
 )
 
-// NewCommand creates the cobra command tree for the drain driver.
+// NewCommand creates the cobra command tree for the kssd driver.
 func NewCommand() *cobra.Command {
 	o := logsapi.NewLoggingConfiguration()
 	var clientset kubernetes.Interface
@@ -165,7 +165,7 @@ func NewCommand() *cobra.Command {
 
 		// Create LifecycleTransitions
 		//
-		// The drain driver publishes two cluster-wide transitions,
+		// The kssd driver publishes two cluster-wide transitions,
 		// usable on all nodes, as defined by the KEP:
 		//   1. drain-started → drain-complete    (cordon + evict)
 		//   2. uncordoning   → maintenance-complete (uncordon)
@@ -237,7 +237,7 @@ func NewCommand() *cobra.Command {
 			}
 		}()
 
-		logger.Info("Drain driver started",
+		logger.Info("Kssd driver started",
 			"driverName", *driverName,
 			"nodeName", *nodeName,
 			"slmEndpoint", slmEndpoint,

@@ -38,7 +38,7 @@ claims it and calls the driver's gRPC methods to cordon the node, evict all pods
                             | gRPC (unix socket)
                             |
  ┌──────────────────────────────────────────────────────────┐
- │           Kubectl Server Side Drain Driver               │
+ │              KSSD (Kubectl Server Side Drain)            │
  │                                                          │
  │  Drain transition:                                       │
  │    Start: cordon node, evict pods (async)                │
@@ -54,20 +54,67 @@ claims it and calls the driver's gRPC methods to cordon the node, evict all pods
 
 ### Prerequisites
 
-- A Kubernetes cluster (v1.36+) with the `SpecializedLifecycleManagement` feature gate enabled
-  - https://github.com/rthallisey/kubernetes/tree/specialized-lifecycle-mgmt
-- The `lifecycle.k8s.io/v1alpha1` API enabled via `--runtime-config=lifecycle.k8s.io/v1alpha1=true`
-- `make drain NODE=worker-1` to drain the Pods from worker-1
-- `make maintenance-complete NODE=worker-1` to return the Node from maintenance
+- [kind](https://kind.sigs.k8s.io/) installed
+- Docker installed
+- `kubectl` installed
 
-### Deploy
+### Demo
+
+The demo scripts create a Kind cluster from a pre-built node image that includes the
+[Specialized Lifecycle Management](https://github.com/rthallisey/kubernetes/tree/specialized-lifecycle-mgmt)
+feature. Then, build the driver, and deploy it:
 
 ```bash
-# Build the image
-docker build -t drain-driver:latest .
+# 1. Create a Kind cluster with SLM enabled
+./demo/create-cluster.sh
 
-# For Kind clusters
-kind load docker-image drain-driver:latest --name <cluster-name>
+# 2. Build the driver binary and container image
+./demo/build-driver.sh
+
+# 3. Deploy the driver (RBAC + DaemonSet)
+./demo/deploy-driver.sh
+```
+
+The driver is now running on every node. Try it out by draining a busybox pod:
+
+```bash
+# Create the busybox pod on the worker node
+./demo/deploy-busybox.sh
+
+# Drain a worker node
+make drain NODE=kssd-cluster-worker
+
+# Watch the lifecycle event progress
+kubectl get lifecycleevents -w
+
+# Once drain completes, bring the node back
+make maintenance-complete NODE=kssd-cluster-worker
+
+# Clean up when done
+./demo/delete-cluster.sh
+```
+
+The demo uses a pre-built Kind image (`ghcr.io/rthallisey/kindest-node:slm`) by default.
+To build the Kind image from source instead, run:
+
+```bash
+BUILD_KIND_IMAGE=true ./demo/create-cluster.sh
+```
+
+### Manual setup
+
+If you already have a Kubernetes cluster (v1.36+) with the `SpecializedLifecycleManagement`
+feature gate and `--runtime-config=lifecycle.k8s.io/v1alpha1=true` enabled:
+
+```bash
+# Build the driver
+make build
+
+# Build the container image
+docker build -t kssd:latest .
+
+# For Kind clusters, load the image
+kind load docker-image kssd:latest --name <cluster-name>
 
 # Deploy RBAC and DaemonSet
 kubectl apply -f deploy/rbac.yaml
@@ -109,7 +156,7 @@ Monitor progress:
 kubectl get lifecycleevents -w
 
 # Watch the node condition
-kubectl get node worker-1 -o jsonpath='{.status.conditions[?(@.type=="LifecycleTransition")]}'
+kubectl get node kssd-cluster-worker -o jsonpath='{.status.conditions[?(@.type=="LifecycleTransition")]}'
 ```
 
 The drain flow:
@@ -128,10 +175,10 @@ The uncordon flow:
 
 ```bash
 # Build
-go build ./cmd/drain-driver
+go build ./cmd/kssd-driver
 
 # Run locally against a Kind cluster
-go run ./cmd/drain-driver kubelet-plugin \
+go run ./cmd/kssd-driver kubelet-plugin \
   --kubeconfig=$KUBECONFIG \
   --node-name=<node> \
   --datadir=/tmp/slm-plugins \

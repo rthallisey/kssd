@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: drain-driver
+  name: kssd-driver
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: drain-driver
+  name: kssd-driver
 rules:
 - apiGroups: ["lifecycle.k8s.io"]
   resources: ["lifecycletransitions"]
@@ -28,12 +28,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: drain-driver
+  name: kssd-driver
 subjects:
 - kind: ServiceAccount
-  name: drain-driver
+  name: kssd-driver
   namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: drain-driver
+  name: kssd-driver
   apiGroup: rbac.authorization.k8s.io

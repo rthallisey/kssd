@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// The kubectl-server-side-drain-driver is a Specialized Lifecycle Management (SLM)
+// The kubectl-server-side-drain driver is a Specialized Lifecycle Management (SLM)
 // driver that implements server-side node drain. It registers with the kubelet as an
 // SLM plugin and publishes a LifecycleTransition for doing node drain: cordon → drain.
 // A second LifecycleTransition is used for returning the Node: maintenance → uncordon.

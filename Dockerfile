@@ -1,3 +1,3 @@
 FROM gcr.io/distroless/static
-COPY bin/drain-driver /drain-driver
-ENTRYPOINT ["/drain-driver"]
+COPY bin/kssd-driver /kssd-driver
+ENTRYPOINT ["/kssd-driver"]

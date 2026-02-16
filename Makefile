@@ -1,7 +1,7 @@
 .PHONY: build
-build: ## Build the drain-driver binary (static, linux/amd64).
+build: ## Build the kssd-driver binary (static, linux/amd64).
 	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/drain-driver ./cmd/drain-driver
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/kssd-driver ./cmd/kssd-driver
 
 .PHONY: drain
 drain: ## Drain a node. Usage: make drain NODE=<node-name>
