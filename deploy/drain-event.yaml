@@ -1,0 +1,7 @@
+apiVersion: lifecycle.k8s.io/v1alpha1
+kind: LifecycleEvent
+metadata:
+  name: drain-kssd-cluster-worker
+spec:
+  transitionName: kssd-drain
+  bindingNode: kssd-cluster-worker

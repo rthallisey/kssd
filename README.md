@@ -2,7 +2,7 @@
 
 A lifecycle driver implemented using the libraries from Kubectl Drain and executed on the server-side.
 
-This driver is a POC, leveraging the [Specialized Lifecycle Management](https://github.com/kubernetes/enhancements/pull/5769) framework to show how lifecycle business logic can be offloaded to a driver while maintaining a standard observability interface in core Kubernetes (Node Conditions).
+This driver is a POC, leveraging the [Specialized Lifecycle Management](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/5683-specialized-lifecycle-management) framework to show how lifecycle business logic can be offloaded to a driver while maintaining a standard observability interface in core Kubernetes (Node Conditions).
 
 Instead of `kubectl drain` running client-side, this driver runs as a kubelet plugin on every node.
 When a `LifecycleEvent` is created for a node that this driver can claim, the kubelet
@@ -16,7 +16,7 @@ claims it and calls the driver's gRPC methods to cordon the node, evict all pods
 │                                                            │
 │  Kssd has 2 LifecycleTransitions:                          │
 │    1. kssd-drain                                           │
-│    2. kssd-maintenance-completed                           │
+│    2. kssd-maintenance-complete                           │
 │                                                            │
 │  A user creates a LifecycleEvent to trigger the transition │
 └────────────────────────────────────────────────────────────┘
@@ -27,7 +27,7 @@ claims it and calls the driver's gRPC methods to cordon the node, evict all pods
           │              Kubelet              │
           │                                   │
           │  SLM LifecycleEvent Reconciler    │
-          │    1. Claim LifecyleEvent         │
+          │    1. Claim LifecycleEvent         │
           │    2. Call Start gRPC             │
           │    3. Patch Node condition        │
           │    4. Call End gRPC               │
@@ -44,7 +44,7 @@ claims it and calls the driver's gRPC methods to cordon the node, evict all pods
  │    Start: cordon node, evict pods (async)                │
  │    End:   wait until pod drain                           │
  │                                                          │
- │  Maintenace Complete transition:                         │
+ │  Maintenance Complete transition:                         │
  │    Start: uncordon node                                  │
  │    End:   verify schedulable                             │
  └──────────────────────────────────────────────────────────┘
@@ -144,7 +144,7 @@ kind: LifecycleEvent
 metadata:
   name: maint-complete-worker-1
 spec:
-  transitionName: kssd-maintenance-completed
+  transitionName: kssd-maintenance-complete
   bindingNode: worker-1
 EOF
 ```
@@ -188,7 +188,7 @@ go run ./cmd/kssd-driver kubelet-plugin \
 
 ## Community
 
-- [Specialized Lifecycle Management - KEP-5769](https://github.com/kubernetes/enhancements/pull/5769)
+- [Specialized Lifecycle Management - KEP-5683](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/5683-specialized-lifecycle-management)
 - [Slack](https://slack.k8s.io/) — #sig-node-lifecycle
 - [Mailing List](https://groups.google.com/a/kubernetes.io/g/dev)
 
